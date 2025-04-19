@@ -5,15 +5,38 @@
 #' @import shiny
 #' @noRd
 app_ui <- function(request) {
-  tagList(
-    # Leave this function for adding external resources
+
+  theme <- bslib::bs_theme(
+    version = 5,
+    bootswatch = "litera",
+    base_font = bslib::font_google("Roboto"),
+    heading_font = bslib::font_google("Raleway")
+  )
+
+  shiny::fluidPage(
+    theme = theme,
     golem_add_external_resources(),
-    # Your application UI logic
-    fluidPage(
-      golem::golem_welcome_page() # Remove this line to start building your UI
+    shiny::titlePanel("Equity Research Buddy"),
+
+    shiny::tabsetPanel(
+      type = "tabs",
+      shiny::tabPanel("Beta",
+
+                      sidebarLayout(
+                        sidebarPanel(
+                      mod_fit_regression_ui("univariate_regression"),
+                      width = 4
+                        ),
+                      mainPanel(
+                        # something here
+                        width = 8
+                      )
+                      )
+      )
     )
   )
 }
+
 
 #' Add external Resources to the Application
 #'

@@ -6,4 +6,8 @@
 #' @noRd
 app_server <- function(input, output, session) {
   # Your application server logic
+
+  r <- reactiveValues()
+
+  mod_fit_regression_server("univariate_regression", r)
 }
