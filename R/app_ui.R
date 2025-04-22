@@ -28,7 +28,7 @@ app_ui <- function(request) {
                       width = 4
                         ),
                       mainPanel(
-                        # something here
+                        mod_show_regression_ui("show_regression"),
                         width = 8
                       )
                       )
