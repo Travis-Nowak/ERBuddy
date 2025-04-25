@@ -12,8 +12,10 @@ mod_show_regression_ui <- function(id) {
   tagList(
       shiny::h4("Regression Summary"),
       shiny::tableOutput(ns("regression_table")),
-      shiny::h4("Return Comparisson"),
-      shiny::plotOutput(ns("return_plot"))
+      shiny::h4("Return Comparison"),
+      shiny::plotOutput(ns("return_plot")),
+      shiny::h4("Rolling Beta"),
+      shiny::plotOutput(ns("rolling_beta_plot"))
   )
 }
 
@@ -34,7 +36,10 @@ mod_show_regression_server <- function(id, r){
       r$return_plot
     })
 
-
+    output$rolling_beta_plot <- renderPlot({
+      req(r$rolling_beta_plot)
+      r$rolling_beta_plot
+    })
   })
 }
 

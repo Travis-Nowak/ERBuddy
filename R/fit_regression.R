@@ -20,6 +20,11 @@ mod_fit_regression_ui <- function(id) {
     shiny::textInput(ns("index_input"),
                      "Input Index"),
 
+    shiny::actionButton(ns("sp500_button"), "S&P500"),
+    shiny::actionButton(ns("tsx_button"), "TSX"),
+    shiny::actionButton(ns("hsi_button"), "HSI"),
+    shiny::actionButton(ns("acwi_button"), "ACWI"),
+
     shiny::selectInput(ns("frequency_input"),
                        "Frequency",
                        c("Monthly", "Weekly")),
@@ -55,6 +60,19 @@ mod_fit_regression_server <- function(id, r){
       )
 
       ggplot_regression(r)
+      rolling_beta_plot(r)
     })
+    observeEvent(input$sp500_button, {
+      updateTextInput(session, "index_input", value = "^SPX")
+    })
+      observeEvent(input$tsx_button, {
+        updateTextInput(session, "index_input", value = "^GSPTSE")
+    })
+      observeEvent(input$hsi_button, {
+        updateTextInput(session, "index_input", value = "^HSI")
+      })
+      observeEvent(input$acwi_button, {
+        updateTextInput(session, "index_input", value = "ACWI")
+      })
   })
 }

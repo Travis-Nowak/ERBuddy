@@ -27,6 +27,7 @@ golem::add_module(name = "show_regression", with_test = TRUE) # Name of the modu
 ## Creates fct_* and utils_*
 golem::add_fct("helpers", with_test = TRUE)
 golem::add_fct("ggplot_regression", with_test = TRUE)
+golem::add_fct("rolling_beta_plot", with_test = TRUE)
 golem::add_fct("uni_regression", with_test = TRUE)
 golem::add_utils("helpers", with_test = TRUE)
 
