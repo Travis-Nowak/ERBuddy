@@ -10,15 +10,30 @@
 mod_show_regression_ui <- function(id) {
   ns <- NS(id)
   tagList(
+      shiny::h4("Regression Summary"),
+      shiny::tableOutput(ns("regression_table")),
+      shiny::h4("Return Comparisson"),
+      shiny::plotOutput(ns("return_plot"))
   )
 }
 
 #' show_regression Server Functions
 #'
 #' @noRd
-mod_show_regression_server <- function(id){
+mod_show_regression_server <- function(id, r){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
+
+    output$regression_table <- renderTable({
+      req(r$regression_stats)
+      r$regression_stats
+    }, digits = 4)
+
+    output$return_plot <- renderPlot({
+      req(r$return_plot)
+      r$return_plot
+    })
+
 
   })
 }

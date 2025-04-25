@@ -46,9 +46,15 @@ mod_fit_regression_server <- function(id, r){
 
       beta_results <- uni_regression(r, input$company_input, input$index_input, input$frequency_input, switch(input$years_input, "2Y" = 2, "5Y" = 5))
 
-      print(r$beta_results)
-      print('----')
-      print(r$beta_table, n = nrow(r$beta_table))
+      uni_regression(
+        r,
+        input$company_input,
+        input$index_input,
+        input$frequency_input,
+        switch(input$years_input, "2Y" = 2, "5Y" = 5)
+      )
+
+      ggplot_regression(r)
     })
   })
 }

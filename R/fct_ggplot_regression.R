@@ -5,26 +5,28 @@
 #' @return The return value, if any, from executing the function.
 #'
 #' @noRd
-ggplot_regression <- function(r, company_ticker, index_ticker, frequency, years_back) {
+#'
+ggplot_regression <- function(r) {
+  req(r$uni_ticker, r$uni_benchmark, r$uni_freq, r$uni_timeline)
 
-  r$plot <- NULL
+  company_ticker <- r$uni_ticker
+  index_ticker   <- r$uni_benchmark
+  frequency      <- r$uni_freq
+  years_back     <- r$uni_timeline
 
   from_date <- lubridate::floor_date(Sys.Date() - lubridate::years(years_back),
                                      unit = ifelse(frequency == "Monthly", "month", "week"))
 
-  ifelse(
-    frequency == "Monthly",
-    to_date <- lubridate::rollback(Sys.Date(), roll_to_first = TRUE) - 1,
-    to_date <- Sys.Date() - lubridate::wday(Sys.Date(), week_start = 1) - 2
-  )
+  to_date <- if (frequency == "Monthly") {
+    lubridate::rollback(Sys.Date(), roll_to_first = TRUE) - 1
+  } else {
+    Sys.Date() - lubridate::wday(Sys.Date(), week_start = 1) - 2
+  }
 
   combined_tickers <- c(company_ticker, index_ticker)
 
-  # Pull prices
   prices <- tidyquant::tq_get(combined_tickers, get = "stock.prices", from = from_date, to = to_date)
 
-
-  # Get periodic returns
   period_type <- tolower(frequency)
 
   prices_periodic <- prices %>%
@@ -35,32 +37,21 @@ ggplot_regression <- function(r, company_ticker, index_ticker, frequency, years_
       period     = period_type,
       type       = "arithmetic",
       col_rename = "returns"
-    )
-
-
-  # Only keep latest 60 observations if enough data exists
-  expected_periods <- switch(frequency,
-                             "Monthly" = 12,
-                             "Weekly" = 52) * years_back
-
-
-  prices_periodic <- prices_periodic %>%
+    ) %>%
     group_by(symbol) %>%
     arrange(date) %>%
-    filter(n() >= expected_periods) %>%
-    slice_tail(n = expected_periods)
+    filter(n() >= years_back * ifelse(frequency == "Monthly", 12, 52)) %>%
+    slice_tail(n = years_back * ifelse(frequency == "Monthly", 12, 52))
 
+  # Plot
+  p <- ggplot2::ggplot(prices_periodic, ggplot2::aes(x = date, y = returns, color = symbol)) +
+    ggplot2::geom_line(size = 1) +
+    ggplot2::labs(
+      title = paste0(company_ticker, " vs ", index_ticker, " Returns"),
+      x = "Date", y = "Periodic Return",
+      color = "Ticker"
+    ) +
+    ggplot2::theme_minimal()
 
-  prices_periodic_wide <- prices_periodic %>%
-    pivot_wider(
-      id_cols = date, names_from = symbol, values_from = returns
-    )
-
-  r$plot <- ggplot(
-    aes(
-      x = prices_periodic_wide[2], y = prices_periodic_wide[3]
-    )
-  ) +
-    ggplot2::geom_line()
-
+  r$return_plot <- p
 }

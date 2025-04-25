@@ -83,12 +83,19 @@ uni_regression <- function(r, company_ticker, index_ticker, frequency, years_bac
 
 
 
-  # Return beta
-  beta <- as.numeric(model$coefficients[2])
+  # Add to the end of uni_regression()
 
-  #print(beta)
+  summary_model <- summary(model)
 
-  r$beta_results <- beta
-  r$beta_table <- prices_periodic_wide
+  r$regression_stats <- tibble::tibble(
+    `Beta` = summary_model$coefficients[2, 1],
+    `R²` = summary_model$r.squared,
+    `p-value` = summary_model$coefficients[2, 4]
+  )
+
+  r$uni_ticker <- company_ticker
+  r$uni_benchmark <- index_ticker
+  r$uni_freq <- frequency
+  r$uni_timeline <- years_back
 
 }
