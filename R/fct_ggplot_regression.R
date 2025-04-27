@@ -53,8 +53,8 @@ ggplot_regression <- function(r) {
     ) +
     ggplot2::theme_minimal() +
     ggplot2::scale_x_date(
-      date_breaks = "2 months",         # Customize as needed
-      date_labels = "%b %Y"             # E.g., "Jan 2022"
+      date_breaks = "2 months",
+      date_labels = "%b %Y"
     ) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
 

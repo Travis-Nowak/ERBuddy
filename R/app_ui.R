@@ -20,8 +20,7 @@ app_ui <- function(request) {
 
     shiny::tabsetPanel(
       type = "tabs",
-      shiny::tabPanel("Beta",
-
+      shiny::tabPanel("Regresssion Beta",
                       sidebarLayout(
                         sidebarPanel(
                       mod_fit_regression_ui("univariate_regression"),
@@ -32,9 +31,21 @@ app_ui <- function(request) {
                         width = 8
                       )
                       )
+      ),
+      shiny::tabPanel("MBuB",
+                      sidebarLayout(
+                        sidebarPanel(
+                          mod_MBuB_ui("mbub_inputs"),
+                          width = 4
+                        ),
+                        mainPanel(
+                          #Something that allows us to see results here
+                          width = 8
+                        )
+                      )
       )
     )
-  )
+    )
 }
 
 

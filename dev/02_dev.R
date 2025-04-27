@@ -22,6 +22,7 @@ attachment::att_amend_desc()
 ## Create a module infrastructure in R/
 golem::add_module(name = "bottom_up_beta", with_test = TRUE) # Name of the module
 golem::add_module(name = "show_regression", with_test = TRUE) # Name of the module
+golem::add_module(name = "MBuB", with_test = TRUE) # Name of the module
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*

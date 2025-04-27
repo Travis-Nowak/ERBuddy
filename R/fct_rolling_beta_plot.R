@@ -27,7 +27,7 @@ rolling_beta_plot <- function(r, window = 12) {
 
   combined_tickers <- c(company_ticker, index_ticker)
 
-  # Pull price data
+
   prices <- tidyquant::tq_get(combined_tickers, get = "stock.prices", from = from_date, to = to_date)
 
   if (nrow(prices) == 0 || !(company_ticker %in% unique(prices$symbol))) {
@@ -39,7 +39,7 @@ rolling_beta_plot <- function(r, window = 12) {
     return(invisible(NULL))
   }
 
-  # Get periodic returns
+
   period_type <- tolower(frequency)
 
   lookback_period <- 2 * window
@@ -60,7 +60,7 @@ rolling_beta_plot <- function(r, window = 12) {
     ungroup() %>%
     tidyr::pivot_wider(names_from = symbol, values_from = returns)
 
-  # Always rename explicitly based on tickers (safe)
+
   available_cols <- colnames(prices_periodic)
 
   if (!(company_ticker %in% available_cols) || !(index_ticker %in% available_cols)) {
@@ -83,7 +83,7 @@ rolling_beta_plot <- function(r, window = 12) {
 
   names(prices_periodic)[2:3] <- c("stock_return", "market_return")
 
-  # Rolling regression to calculate beta
+
   roll_beta <- slider::slide_dfr(
     .x = seq_len(nrow(prices_periodic) - window + 1),
     .f = ~ {
@@ -99,12 +99,12 @@ rolling_beta_plot <- function(r, window = 12) {
     }
   )
 
-  # Replace just the plotting section:
+
   last_point <- roll_beta %>% slice_tail(n = 1)
 
-  library(patchwork)  # install.packages("patchwork") if needed
+  library(patchwork)
 
-  # Plot 1: Beta
+
   p1 <- ggplot2::ggplot(roll_beta, ggplot2::aes(x = date, y = beta)) +
     ggplot2::geom_line(color = "steelblue", size = 1) +
     ggplot2::geom_smooth(method = "loess", se = FALSE, linetype = "dashed") +
@@ -124,7 +124,7 @@ rolling_beta_plot <- function(r, window = 12) {
     ggplot2::theme(axis.text.x = ggplot2::element_blank(),
                                              axis.ticks.x = ggplot2::element_blank())
 
-  # Plot 2: R²
+
   p2 <- ggplot2::ggplot(roll_beta, ggplot2::aes(x = date, y = r_squared)) +
     ggplot2::geom_line(color = "darkgreen", size = 1) +
     ggplot2::geom_smooth(method = "loess", se = FALSE, linetype = "dashed", color = "forestgreen") +
@@ -136,8 +136,8 @@ rolling_beta_plot <- function(r, window = 12) {
     ) +
     ggplot2::theme_minimal() +
     ggplot2::scale_x_date(
-      date_breaks = "2 months",         # Customize as needed
-      date_labels = "%b %Y"             # E.g., "Jan 2022"
+      date_breaks = "2 months",
+      date_labels = "%b %Y"
     ) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
 
