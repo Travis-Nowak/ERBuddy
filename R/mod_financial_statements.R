@@ -197,14 +197,21 @@ mod_financial_statements_server <- function(id){
               htmltools::tags$tbody(
                 apply(df_clean, 1, function(row) {
                   htmltools::tags$tr(
-                    lapply(row, function(cell) {
-                      if (is.numeric(cell) || !is.na(suppressWarnings(as.numeric(cell)))) {
-                        formatted <- format(as.numeric(cell), big.mark = ",", scientific = FALSE, trim = TRUE)
+                    lapply(seq_along(row), function(i) {
+                      cell <- row[[i]]
+                      is_eps_row <- grepl("EPS", row[["Metric"]], ignore.case = TRUE)
+
+                      if (!is.na(suppressWarnings(as.numeric(cell)))) {
+                        digits <- if (is_eps_row) 2 else 0
+                        formatted <- format(round(as.numeric(cell), digits),
+                                            big.mark = ",", nsmall = digits, scientific = FALSE, trim = TRUE)
                       } else {
                         formatted <- cell
                       }
                       htmltools::tags$td(HTML(formatted))
                     })
+
+
 
                   )
                 })
@@ -371,14 +378,21 @@ mod_financial_statements_server <- function(id){
               htmltools::tags$tbody(
                 apply(df_clean, 1, function(row) {
                   htmltools::tags$tr(
-                    lapply(row, function(cell) {
-                      if (is.numeric(cell) || !is.na(suppressWarnings(as.numeric(cell)))) {
-                        formatted <- format(as.numeric(cell), big.mark = ",", scientific = FALSE, trim = TRUE)
+                    lapply(seq_along(row), function(i) {
+                      cell <- row[[i]]
+                      is_eps_row <- grepl("EPS", row[["Metric"]], ignore.case = TRUE)
+
+                      if (!is.na(suppressWarnings(as.numeric(cell)))) {
+                        digits <- if (is_eps_row) 2 else 0
+                        formatted <- format(round(as.numeric(cell), digits),
+                                            big.mark = ",", nsmall = digits, scientific = FALSE, trim = TRUE)
                       } else {
                         formatted <- cell
                       }
                       htmltools::tags$td(HTML(formatted))
                     })
+
+
 
                   )
                 })
@@ -458,14 +472,21 @@ mod_financial_statements_server <- function(id){
               htmltools::tags$tbody(
                 apply(df_clean, 1, function(row) {
                   htmltools::tags$tr(
-                    lapply(row, function(cell) {
-                      if (is.numeric(cell) || !is.na(suppressWarnings(as.numeric(cell)))) {
-                        formatted <- format(as.numeric(cell), big.mark = ",", scientific = FALSE, trim = TRUE)
+                    lapply(seq_along(row), function(i) {
+                      cell <- row[[i]]
+                      is_eps_row <- grepl("EPS", row[["Metric"]], ignore.case = TRUE)
+
+                      if (!is.na(suppressWarnings(as.numeric(cell)))) {
+                        digits <- if (is_eps_row) 2 else 0
+                        formatted <- format(round(as.numeric(cell), digits),
+                                            big.mark = ",", nsmall = digits, scientific = FALSE, trim = TRUE)
                       } else {
                         formatted <- cell
                       }
                       htmltools::tags$td(HTML(formatted))
                     })
+
+
 
                   )
                 })
@@ -477,32 +498,40 @@ mod_financial_statements_server <- function(id){
 
 
     # Download Handler
-    output$download_excel <- downloadHandler(
-      filename = function() {
-        paste0(input$ticker, "_financials.xlsx")
-      },
-      content = function(file) {
-        if (is.null(statements$income) || is.null(statements$balance) || is.null(statements$cashflow)) {
-          return(NULL)
-        }
-        openxlsx::write.xlsx(
-          list(
-            Income_Statement = statements$income,
-            Balance_Sheet = statements$balance,
-            Cash_Flow = statements$cashflow
-          ),
-          file = file
+        output$download_excel <- downloadHandler(
+          filename = function() {
+            paste0(input$ticker, "_financials_long_format.xlsx")
+          },
+          content = function(file) {
+            if (is.null(statements$income) || is.null(statements$balance) || is.null(statements$cashflow)) {
+              return(NULL)
+            }
+
+            # Convert each statement to long format
+            to_long <- function(df, label_df) {
+              df %>%
+                dplyr::select(date, any_of(label_df$raw)) %>%
+                tidyr::pivot_longer(-date, names_to = "raw", values_to = "value") %>%
+                left_join(label_df, by = "raw") %>%
+                dplyr::select(date, line_item = label, value)
+            }
+
+            long_income <- to_long(statements$income, line_item_labels_is)
+            long_balance <- to_long(statements$balance, line_item_labels_bs)
+            long_cashflow <- to_long(statements$cashflow, line_item_labels_cf)
+
+            openxlsx::write.xlsx(
+              list(
+                Income_Statement = long_income,
+                Balance_Sheet = long_balance,
+                Cash_Flow = long_cashflow
+              ),
+              file = file
+            )
+          }
         )
-      }
-    )
+
       }
     })
   })
 }
-
-
-## To be copied in the UI
-# mod_financial_statements_ui("financial_statements_1")
-
-## To be copied in the server
-# mod_financial_statements_server("financial_statements_1")
