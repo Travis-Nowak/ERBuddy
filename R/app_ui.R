@@ -35,7 +35,7 @@ app_ui <- function(request) {
       shiny::tabPanel("MBuB",
                       sidebarLayout(
                         sidebarPanel(
-                          mod_MBuB_ui("mbub_inputs"),
+                          #mod_MBuB_ui("mbub_inputs"),
                           width = 4
                         ),
                         mainPanel(
@@ -43,6 +43,9 @@ app_ui <- function(request) {
                           width = 8
                         )
                       )
+      ),
+      shiny::tabPanel("Financials",
+                      mod_financial_statements_ui("financial_statements_1")
       )
     )
     )
