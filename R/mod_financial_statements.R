@@ -16,14 +16,23 @@ mod_financial_statements_ui <- function(id) {
         passwordInput(ns("api_key"), "FMP API Key"),
         actionButton(ns("fetch"), "Fetch Financials"),
         br(), br(),
+        radioButtons(
+          ns("scale"),
+          "Display Units:",
+          choices = c("Dollars" = 1, "Thousands" = 1000, "Millions" = 1e6),
+          selected = 1,
+          inline = TRUE
+        ),
+        br(),
+        br(),
         downloadButton(ns("download_excel"), "Download All as Excel")
       ),
       mainPanel(
         h4("Income Statement"),
-        tableOutput(ns("income_statement")),
+        uiOutput(ns("income_statement")),
         br(),
         h4("Balance Sheet"),
-        tableOutput(ns("balance_sheet")),
+        uiOutput(ns("balance_sheet")),
         br(),
         h4("Cash Flow Statement"),
         uiOutput(ns("cash_flow"))
@@ -71,105 +80,312 @@ mod_financial_statements_server <- function(id){
 
       # Render income
       if (!is.null(income)) {
-        output$income_statement <- renderTable({
-          as.data.frame(income) %>%
-            dplyr::select(date, dplyr::any_of(c("revenue",
-                                                "costOfRevenue",
-                                                "grossProfit",
-                                                "researchAndDevelopmentExpenses",
-                                                "generalAndAdministrativeExpenses",
-                                                "sellingAndMarketingExpenses",
-                                                "sellingGeneralAndAdministrativeExpenses",
-                                                "otherExpenses",
-                                                "operatingExpenses",
-                                                "costAndExpenses",
-                                                "netInterestIncome",
-                                                "interestIncome",
-                                                "interestExpense",
-                                                "depreciationAndAmortization",
-                                                "ebitda",
-                                                "ebit",
-                                                "nonOperatingIncomeExcludingInterest",
-                                                "operatingIncome",
-                                                "totalOtherIncomeExpensesNet",
-                                                "incomeBeforeTax",
-                                                "incomeTaxExpense",
-                                                "netIncomeFromContinuingOperations",
-                                                "netIncomeFromDiscontinuedOperations",
-                                                "otherAdjustmentsToNetIncome",
-                                                "netIncome",
-                                                "netIncomeDeductions",
-                                                "bottomLineNetIncome",
-                                                "eps",
-                                                "epsDiluted",
-                                                "weightedAverageShsOut",
-                                                "weightedAverageShsOutDil"))) %>%
-            tidyr::pivot_longer(-date, names_to = "Metric", values_to = "Value") %>%
-            tidyr::pivot_wider(names_from = date, values_from = Value)
+        line_item_labels_is <- tibble::tibble(
+          raw = c("revenue",
+                  "costOfRevenue",
+                  "grossProfit",
+                  "researchAndDevelopmentExpenses",
+                  "generalAndAdministrativeExpenses",
+                  "sellingAndMarketingExpenses",
+                  "sellingGeneralAndAdministrativeExpenses",
+                  "otherExpenses",
+                  "operatingExpenses",
+                  "costAndExpenses",
+                  "netInterestIncome",
+                  "interestIncome",
+                  "interestExpense",
+                  "depreciationAndAmortization",
+                  "ebitda",
+                  "ebit",
+                  "nonOperatingIncomeExcludingInterest",
+                  "operatingIncome",
+                  "totalOtherIncomeExpensesNet",
+                  "incomeBeforeTax",
+                  "incomeTaxExpense",
+                  "netIncomeFromContinuingOperations",
+                  "netIncomeFromDiscontinuedOperations",
+                  "otherAdjustmentsToNetIncome",
+                  "netIncome",
+                  "netIncomeDeductions",
+                  "bottomLineNetIncome",
+                  "eps",
+                  "epsDiluted",
+                  "weightedAverageShsOut",
+                  "weightedAverageShsOutDil"),
+          label = c("Revenue",
+                    "Cost of Revenue",
+                    "Gross Profit",
+                    "Research and Development Expenses",
+                    "General and Administrative Expenses",
+                    "Selling and Marketing Expenses",
+                    "Selling, General and Administrative Expenses",
+                    "Other Expenses",
+                    "Operating Expenses",
+                    "Cost and Expenses",
+                    "Net Interest Income",
+                    "Interest Income",
+                    "Interest Expense",
+                    "Depreciation and Amortization",
+                    "EBITDA",
+                    "EBIT",
+                    "Non-Operating Income (Excluding Interest)",
+                    "Operating Income",
+                    "Total Other Income/Expenses (Net)",
+                    "Income Before Tax",
+                    "Income Tax Expense",
+                    "Net Income from Continuing Operations",
+                    "Net Income from Discontinued Operations",
+                    "Other Adjustments to Net Income",
+                    "Net Income",
+                    "Net Income Deductions",
+                    "Bottom Line Net Income",
+                    "EPS",
+                    "EPS Diluted",
+                    "Weighted Average Shares Outstanding",
+                    "Weighted Average Shares Outstanding (Diluted)"),
+          is_major = raw %in% c(
+            "revenue",
+            "grossProfit",
+            "operatingIncome",
+            "incomeBeforeTax",
+            "netIncome",
+            "bottomLineNetIncome",
+            "eps",
+            "epsDiluted"
+          ),
+
+          skip_scaling = raw %in% c(
+            "eps", "epsDiluted",
+            "weightedAverageShsOut", "weightedAverageShsOutDil"
+          )
+
+        )
+
+        output$income_statement <- renderUI({
+          df <- as.data.frame(statements$income)
+
+          if (is.null(df)) return(NULL)
+
+          df_clean <- df %>%
+            dplyr::select(date, any_of(line_item_labels_is$raw)) %>%
+            tidyr::pivot_longer(-date, names_to = "raw", values_to = "Value") %>%
+            tidyr::pivot_wider(names_from = date, values_from = Value) %>%
+            left_join(line_item_labels_is, by = "raw") %>%
+            mutate(
+              Metric = ifelse(is_major,
+                              paste0("<strong>", label, "</strong>"),
+                              paste0("&nbsp;&nbsp;&nbsp;&nbsp;", label))
+            ) %>%
+            {
+              scale_val <- as.numeric(input$scale)
+              mutate(., across(
+                .cols = where(is.numeric),
+                .fns = ~ ifelse(raw %in% line_item_labels_is$raw[line_item_labels_is$skip_scaling], ., . / scale_val)
+              ))
+            } %>%
+            select(Metric, where(is.numeric))
+
+          # Turn into HTML table
+          htmltools::tagList(
+            htmltools::tags$table(
+              class = "table table-striped",
+              htmltools::tags$thead(
+                htmltools::tags$tr(
+                  lapply(colnames(df_clean), function(col) htmltools::tags$th(HTML(col)))
+                )
+              ),
+              htmltools::tags$tbody(
+                apply(df_clean, 1, function(row) {
+                  htmltools::tags$tr(
+                    lapply(row, function(cell) {
+                      if (is.numeric(cell) || !is.na(suppressWarnings(as.numeric(cell)))) {
+                        formatted <- format(as.numeric(cell), big.mark = ",", scientific = FALSE, trim = TRUE)
+                      } else {
+                        formatted <- cell
+                      }
+                      htmltools::tags$td(HTML(formatted))
+                    })
+
+                  )
+                })
+              )
+            )
+          )
         })
       }
 
       # Render balance
       if (!is.null(balance)) {
-        output$balance_sheet <- renderTable({
-          as.data.frame(balance) %>%
-            dplyr::select(date, dplyr::any_of(c(
-                "cashAndCashEquivalents",
-                "shortTermInvestments",
-                "cashAndShortTermInvestments",
-                "netReceivables",
-                "accountsReceivables",
-                "otherReceivables",
-                "inventory",
-                "prepaids",
-                "otherCurrentAssets",
-                "totalCurrentAssets",
-                "propertyPlantEquipmentNet",
-                "goodwill",
-                "intangibleAssets",
-                "goodwillAndIntangibleAssets",
-                "longTermInvestments",
-                "taxAssets",
-                "otherNonCurrentAssets",
-                "totalNonCurrentAssets",
-                "otherAssets",
-                "totalAssets",
-                "totalPayables",
-                "accountPayables",
-                "otherPayables",
-                "accruedExpenses",
-                "shortTermDebt",
-                "capitalLeaseObligationsCurrent",
-                "taxPayables",
-                "deferredRevenue",
-                "otherCurrentLiabilities",
-                "totalCurrentLiabilities",
-                "longTermDebt",
-                "deferredRevenueNonCurrent",
-                "deferredTaxLiabilitiesNonCurrent",
-                "otherNonCurrentLiabilities",
-                "totalNonCurrentLiabilities",
-                "otherLiabilities",
-                "capitalLeaseObligations",
-                "totalLiabilities",
-                "treasuryStock",
-                "preferredStock",
-                "commonStock",
-                "retainedEarnings",
-                "additionalPaidInCapital",
-                "accumulatedOtherComprehensiveIncomeLoss",
-                "otherTotalStockholdersEquity",
-                "totalStockholdersEquity",
-                "totalEquity",
-                "minorityInterest",
-                "totalLiabilitiesAndTotalEquity",
-                "totalInvestments",
-                "totalDebt",
-                "netDebt"))) %>%
-            tidyr::pivot_longer(-date, names_to = "Metric", values_to = "Value") %>%
-            tidyr::pivot_wider(names_from = date, values_from = Value)
+        line_item_labels_bs <- tibble::tibble(
+          raw = c("cashAndCashEquivalents",
+                  "shortTermInvestments",
+                  "cashAndShortTermInvestments",
+                  "netReceivables",
+                  "accountsReceivables",
+                  "otherReceivables",
+                  "inventory",
+                  "prepaids",
+                  "otherCurrentAssets",
+                  "totalCurrentAssets",
+                  "propertyPlantEquipmentNet",
+                  "goodwill",
+                  "intangibleAssets",
+                  "goodwillAndIntangibleAssets",
+                  "longTermInvestments",
+                  "taxAssets",
+                  "otherNonCurrentAssets",
+                  "totalNonCurrentAssets",
+                  "otherAssets",
+                  "totalAssets",
+                  "totalPayables",
+                  "accountPayables",
+                  "otherPayables",
+                  "accruedExpenses",
+                  "shortTermDebt",
+                  "capitalLeaseObligationsCurrent",
+                  "taxPayables",
+                  "deferredRevenue",
+                  "otherCurrentLiabilities",
+                  "totalCurrentLiabilities",
+                  "longTermDebt",
+                  "deferredRevenueNonCurrent",
+                  "deferredTaxLiabilitiesNonCurrent",
+                  "otherNonCurrentLiabilities",
+                  "totalNonCurrentLiabilities",
+                  "otherLiabilities",
+                  "capitalLeaseObligations",
+                  "totalLiabilities",
+                  "treasuryStock",
+                  "preferredStock",
+                  "commonStock",
+                  "retainedEarnings",
+                  "additionalPaidInCapital",
+                  "accumulatedOtherComprehensiveIncomeLoss",
+                  "otherTotalStockholdersEquity",
+                  "totalStockholdersEquity",
+                  "totalEquity",
+                  "minorityInterest",
+                  "totalLiabilitiesAndTotalEquity",
+                  "totalInvestments",
+                  "totalDebt",
+                  "netDebt"),
+          label = c("Cash and Cash Equivalents",
+                     "Short Term Investments",
+                     "Cash and Short Term Investments",
+                     "Net Receivables",
+                     "Accounts Receivables",
+                     "Other Receivables",
+                     "Inventory",
+                     "Prepaids",
+                     "Other Current Assets",
+                     "Total Current Assets",
+                     "Property Plant and Equipment (Net)",
+                     "Goodwill",
+                     "Intangible Assets",
+                     "Goodwill and Intangible Assets",
+                     "Long Term Investments",
+                     "Tax Assets",
+                     "Other Non-Current Assets",
+                     "Total Non-Current Assets",
+                     "Other Assets",
+                     "Total Assets",
+                     "Total Payables",
+                     "Account Payables",
+                     "Other Payables",
+                     "Accrued Expenses",
+                     "Short Term Debt",
+                     "Capital Lease Obligations (Current)",
+                     "Tax Payables",
+                     "Deferred Revenue",
+                     "Other Current Liabilities",
+                     "Total Current Liabilities",
+                     "Long Term Debt",
+                     "Deferred Revenue (Non-Current)",
+                     "Deferred Tax Liabilities (Non-Current)",
+                     "Other Non-Current Liabilities",
+                     "Total Non-Current Liabilities",
+                     "Other Liabilities",
+                     "Capital Lease Obligations",
+                     "Total Liabilities",
+                     "Treasury Stock",
+                     "Preferred Stock",
+                     "Common Stock",
+                     "Retained Earnings",
+                     "Additional Paid-In Capital",
+                     "Accumulated Other Comprehensive Income (Loss)",
+                     "Other Total Stockholders' Equity",
+                     "Total Stockholders' Equity",
+                     "Total Equity",
+                     "Minority Interest",
+                     "Total Liabilities and Total Equity",
+                     "Total Investments",
+                     "Total Debt",
+                     "Net Debt"),
+          is_major = raw %in% c("cashAndCashEquivalents",
+            "totalCurrentAssets",
+            "propertyPlantEquipmentNet",
+            "totalNonCurrentAssets",
+            "totalAssets",
+            "totalPayables",
+            "totalCurrentLiabilities",
+            "totalNonCurrentLiabilities",
+            "totalLiabilities",
+            "totalStockholdersEquity",
+            "totalEquity",
+            "totalLiabilitiesAndTotalEquity",
+            "totalDebt",
+            "netDebt"
+          )
+        )
+
+        output$balance_sheet <- renderUI({
+          df <- as.data.frame(statements$balance)
+
+          if (is.null(df)) return(NULL)
+
+          df_clean <- df %>%
+            dplyr::select(date, any_of(line_item_labels_bs$raw)) %>%
+            tidyr::pivot_longer(-date, names_to = "raw", values_to = "Value") %>%
+            tidyr::pivot_wider(names_from = date, values_from = Value) %>%
+            left_join(line_item_labels_bs, by = "raw") %>%
+            mutate(
+              Metric = ifelse(is_major,
+                              paste0("<strong>", label, "</strong>"),
+                              paste0("&nbsp;&nbsp;&nbsp;&nbsp;", label))
+            ) %>%
+            {
+              scale_val <- as.numeric(input$scale)
+              mutate(., across(where(is.numeric), ~ . / scale_val))
+            } %>%
+            select(Metric, where(is.numeric))
+
+          # Turn into HTML table
+          htmltools::tagList(
+            htmltools::tags$table(
+              class = "table table-striped",
+              htmltools::tags$thead(
+                htmltools::tags$tr(
+                  lapply(colnames(df_clean), function(col) htmltools::tags$th(HTML(col)))
+                )
+              ),
+              htmltools::tags$tbody(
+                apply(df_clean, 1, function(row) {
+                  htmltools::tags$tr(
+                    lapply(row, function(cell) {
+                      if (is.numeric(cell) || !is.na(suppressWarnings(as.numeric(cell)))) {
+                        formatted <- format(as.numeric(cell), big.mark = ",", scientific = FALSE, trim = TRUE)
+                      } else {
+                        formatted <- cell
+                      }
+                      htmltools::tags$td(HTML(formatted))
+                    })
+
+                  )
+                })
+              )
+            )
+          )
         })
-      }
 
       # Render cash flow
       if (!is.null(cashflow)) {
@@ -208,7 +424,6 @@ mod_financial_statements_server <- function(id){
           )
         )
 
-
         output$cash_flow <- renderUI({
           df <- as.data.frame(statements$cashflow)
 
@@ -223,7 +438,13 @@ mod_financial_statements_server <- function(id){
               Metric = ifelse(is_major, paste0("<strong>", label, "</strong>"),
                               paste0("&nbsp;&nbsp;&nbsp;&nbsp;", label))
             ) %>%
+            {
+              scale_val <- as.numeric(input$scale)
+              mutate(., across(where(is.numeric), ~ . / scale_val))
+            } %>%
             select(Metric, where(is.numeric))
+
+
 
           # Turn into HTML table
           htmltools::tagList(
@@ -237,13 +458,22 @@ mod_financial_statements_server <- function(id){
               htmltools::tags$tbody(
                 apply(df_clean, 1, function(row) {
                   htmltools::tags$tr(
-                    lapply(row, function(cell) htmltools::tags$td(HTML(format(cell, big.mark = ","))))
+                    lapply(row, function(cell) {
+                      if (is.numeric(cell) || !is.na(suppressWarnings(as.numeric(cell)))) {
+                        formatted <- format(as.numeric(cell), big.mark = ",", scientific = FALSE, trim = TRUE)
+                      } else {
+                        formatted <- cell
+                      }
+                      htmltools::tags$td(HTML(formatted))
+                    })
+
                   )
                 })
               )
             )
           )
         })
+      }
 
 
     # Download Handler
