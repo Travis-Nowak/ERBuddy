@@ -46,7 +46,19 @@ app_ui <- function(request) {
       ),
       shiny::tabPanel("Financials",
                       mod_financial_statements_ui("financial_statements_1")
-      )
+      ),
+      shiny::tabPanel("Financial Trends",
+                      sidebarLayout(
+                        sidebarPanel(
+                          #mod_MBuB_ui("mbub_inputs"),
+                          width = 4
+                        ),
+                        mainPanel(
+                          #Something that allows us to see results here
+                          width = 8
+                        )
+                      )
+      ),
     )
     )
 }

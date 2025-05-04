@@ -13,6 +13,7 @@ app_server <- function(input, output, session) {
   mod_show_regression_server("show_regression", r)
   #mod_MBuB_server("mbub_inputs", r)
   mod_financial_statements_server("financial_statements_1", r)
+  #mod_financial_trends_server()
 
 
 }
