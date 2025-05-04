@@ -346,7 +346,6 @@ mod_financial_statements_server <- function(id){
           )
         )
 
-        print(names(statements$balance))
 
         output$balance_sheet <- renderUI({
           df <- as.data.frame(statements$balance)
@@ -393,9 +392,6 @@ mod_financial_statements_server <- function(id){
                   df[(ta_index + 1):nrow(df), ]
                 )
               }
-
-
-
             }
 
 
@@ -441,84 +437,86 @@ mod_financial_statements_server <- function(id){
       # Render cash flow
       if (!is.null(cashflow)) {
         line_item_labels_cf <- tibble::tibble(
-          raw = c("netIncome",
-                  "depreciationAndAmortization",
-                  "deferredIncomeTax",
-                  "stockBasedCompensation",
-                  "changeInWorkingCapital",
-                  #"accountsReceivables",
-                  #"inventory",
-                  #"accountsPayables",
-                  #"otherWorkingCapital",
-                  #"otherNonCashIems",
-                  "netCashProvidedByOperatingActivities",
-                  "investmentsInPropertyPlantAndEquipment",
-                  "acquisitionsNet",
-                  "purchasesOfInvestments",
-                  "salesMaturitiesOfInvestments",
-                  "otherInvestingActivities",
-                  "netCashProvidedByInvestingActivities",
-                  "netDebtIssuance",
-                  "longTermNetDebtIssuance",
-                  "shortTermNetDebtIssuance",
-                  "netStockIssuance",
-                  "netCommonStockIssuance",
-                  "commonStockIssuance",
-                  "commonStockRepurchased",
-                  "netPreferredStockIssuance",
-                  "netDividendsPaid",
-                  "commonDividendsPaid",
-                  "preferredDividendsPaid",
-                  "otherFinancingActivities",
-                  "netCashProvidedByFinancingActivities",
-                  "effectOfForexChangesOnCash",
-                  "netChangeInCash",
-                  "cashAtEndOfPeriod",
-                  "cashAtBeginningOfPeriod",
-                  "operatingCashFlow",
-                  "capitalExpenditure",
-                  "freeCashFlow",
-                  "incomeTaxesPaid",
-                  "interestPaid"),
-          label = c("Net Income",
-                    "Depreciation and Amortization",
-                    "Deferred Income Tax",
-                    "Stock-Based Compensation",
-                    "Change in Working Capital",
-                    #"Accounts Receivables",
-                    #"Inventory",
-                    #"Accounts Payables",
-                    #"Other Working Capital",
-                    #"Other Non-Cash Items",
-                    "Net Cash Provided by Operating Activities",
-                    "Investments in Property, Plant and Equipment",
-                    "Acquisitions (Net)",
-                    "Purchases of Investments",
-                    "Sales/Maturities of Investments",
-                    "Other Investing Activities",
-                    "Net Cash Provided by Investing Activities",
-                    "Net Debt Issuance",
-                    "Long-Term Net Debt Issuance",
-                    "Short-Term Net Debt Issuance",
-                    "Net Stock Issuance",
-                    "Net Common Stock Issuance",
-                    "Common Stock Issuance",
-                    "Common Stock Repurchased",
-                    "Net Preferred Stock Issuance",
-                    "Net Dividends Paid",
-                    "Common Dividends Paid",
-                    "Preferred Dividends Paid",
-                    "Other Financing Activities",
-                    "Net Cash Provided by Financing Activities",
-                    "Effect of Forex Changes on Cash",
-                    "Net Change in Cash",
-                    "Cash at End of Period",
-                    "Cash at Beginning of Period",
-                    "Operating Cash Flow",
-                    "Capital Expenditure",
-                    "Free Cash Flow",
-                    "Income Taxes Paid",
-                    "Interest Paid"),
+          raw = c(
+            "netIncome",
+            "depreciationAndAmortization",
+            "deferredIncomeTax",
+            "stockBasedCompensation",
+            "otherNonCashItems",
+            #"changeInWorkingCapital",
+            "accountsReceivables",
+            "inventory",
+            "accountsPayables",
+            "otherWorkingCapital",
+            "netCashProvidedByOperatingActivities",
+
+            # INVESTING
+            "investmentsInPropertyPlantAndEquipment",
+            "acquisitionsNet",
+            "purchasesOfInvestments",
+            "salesMaturitiesOfInvestments",
+            "otherInvestingActivities",
+            "netCashProvidedByInvestingActivities",
+
+            # FINANCING
+            "debtRepayment",
+            "commonStockIssued",
+            "commonStockRepurchased",
+            "dividendsPaid",
+            "otherFinancingActivities",
+            "netCashProvidedByFinancingActivities",
+
+            # OTHER
+            "effectOfForexChangesOnCash",
+            "netChangeInCash",
+            "cashAtEndOfPeriod",
+            "cashAtBeginningOfPeriod",
+            #"operatingCashFlow",
+            #"capitalExpenditure",
+            "freeCashFlow",
+            "incomeTaxesPaid",
+            "interestPaid"
+          ),
+          label = c(
+            "Net Income",
+            "Depreciation and Amortization",
+            "Deferred Income Tax",
+            "Stock-Based Compensation",
+            "Other Non-Cash Charges",
+            #"Change in Working Capital",
+            "Accounts Receivables",
+            "Inventory",
+            "Accounts Payables",
+            "Other Working Capital",
+            "Net Cash Provided by Operating Activities",
+
+            # INVESTING
+            "Investments in Property, Plant and Equipment",
+            "Acquisitions (Net)",
+            "Purchases of Investments",
+            "Sales/Maturities of Investments",
+            "Other Investing Activities",
+            "Net Cash Provided by Investing Activities",
+
+            # FINANCING
+            "Debt Repayment",
+            "Common Stock Issued",
+            "Common Stock Repurchased",
+            "Dividends Paid",
+            "Other Financing Activities",
+            "Net Cash Provided by Financing Activities",
+
+            # OTHER
+            "Effect of Forex Changes on Cash",
+            "Net Change in Cash",
+            "Cash at End of Period",
+            "Cash at Beginning of Period",
+            #"Operating Cash Flow",
+            #"Capital Expenditure",
+            "Free Cash Flow",
+            "Income Taxes Paid",
+            "Interest Paid"
+          ),
           is_major = raw %in% c(
             "netIncome",
             "netCashProvidedByOperatingActivities",
@@ -531,9 +529,9 @@ mod_financial_statements_server <- function(id){
           )
         )
 
+
         output$cash_flow <- renderUI({
           df <- as.data.frame(statements$cashflow)
-
           if (is.null(df)) return(NULL)
 
           df_clean <- df %>%
@@ -542,18 +540,73 @@ mod_financial_statements_server <- function(id){
             tidyr::pivot_wider(names_from = date, values_from = Value) %>%
             left_join(line_item_labels_cf, by = "raw") %>%
             mutate(
-              Metric = ifelse(is_major, paste0("<strong>", label, "</strong>"),
+              Metric = ifelse(is_major,
+                              paste0("<strong>", label, "</strong>"),
                               paste0("&nbsp;&nbsp;&nbsp;&nbsp;", label))
             ) %>%
             {
               scale_val <- as.numeric(input$scale)
               mutate(., across(where(is.numeric), ~ . / scale_val))
             } %>%
-            select(Metric, where(is.numeric))
+            select(Metric, where(is.numeric)) %>%
+            {
+              df <- .
+
+              # Insert "Adjustments" at the top
+              adjustments_row <- tibble::tibble(
+                Metric = "<strong>Adjustments to Reconcile Net Income to Cash</strong>",
+                !!!setNames(rep(NA_real_, ncol(df) - 1), names(df)[-1])
+              )
+              df <- bind_rows(adjustments_row, df)
+
+              # Insert "Changes in Operating Assets and Liabilities" after Other Non-Cash Charges
+              insert_after <- which(grepl("Other Non-Cash Charges", df$Metric, fixed = TRUE))
+              if (length(insert_after) == 1) {
+                wc_row <- tibble::tibble(
+                  Metric = "<strong>Changes in Operating Assets and Liabilities</strong>",
+                  !!!setNames(rep(NA_real_, ncol(df) - 1), names(df)[-1])
+                )
+                df <- bind_rows(
+                  df[1:insert_after, ],
+                  wc_row,
+                  df[(insert_after + 1):nrow(df), ]
+                )
+              }
+
+              # Insert "Investing Activities" after Net Cash from Ops
+              ncfo_index <- which(df$Metric == "<strong>Net Cash Provided by Operating Activities</strong>")
+              if (length(ncfo_index) == 1) {
+                investing_header <- tibble::tibble(
+                  Metric = "<strong>Investing Activities</strong>",
+                  !!!setNames(rep(NA_real_, ncol(df) - 1), names(df)[-1])
+                )
+                df <- bind_rows(
+                  df[1:ncfo_index, ],
+                  investing_header,
+                  df[(ncfo_index + 1):nrow(df), ]
+                )
+              }
+
+              # Insert "Financing Activities" after Sales/Maturities or Other Investing Line
+              last_investing_row <- which(grepl("Sales/Maturities of Investments|Other Investing Activities", df$Metric))
+              if (length(last_investing_row) > 0) {
+                last_inv <- max(last_investing_row)
+                financing_header <- tibble::tibble(
+                  Metric = "<strong>Financing Activities</strong>",
+                  !!!setNames(rep(NA_real_, ncol(df) - 1), names(df)[-1])
+                )
+                df <- bind_rows(
+                  df[1:last_inv, ],
+                  financing_header,
+                  df[(last_inv + 1):nrow(df), ]
+                )
+              }
 
 
+              df
+            } -> df_clean
 
-          # Turn into HTML table
+          # Render as HTML table
           htmltools::tagList(
             htmltools::tags$table(
               class = "table table-striped",
@@ -569,24 +622,27 @@ mod_financial_statements_server <- function(id){
                       cell <- row[[i]]
                       is_eps_row <- grepl("EPS", row[["Metric"]], ignore.case = TRUE)
 
-                      if (!is.na(suppressWarnings(as.numeric(cell)))) {
+                      numeric_cell <- suppressWarnings(as.numeric(cell))
+                      if (!is.na(numeric_cell)) {
                         digits <- if (is_eps_row) 2 else 0
-                        formatted <- format(round(as.numeric(cell), digits),
+                        formatted <- format(round(numeric_cell, digits),
                                             big.mark = ",", nsmall = digits, scientific = FALSE, trim = TRUE)
-                      } else {
+                      } else if (i == 1) {
                         formatted <- cell
+                      } else {
+                        formatted <- ""
                       }
+
                       htmltools::tags$td(HTML(formatted))
                     })
-
-
-
                   )
                 })
               )
             )
           )
         })
+
+
       }
 
 
