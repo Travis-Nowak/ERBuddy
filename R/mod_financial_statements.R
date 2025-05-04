@@ -450,30 +450,33 @@ mod_financial_statements_server <- function(id){
             "otherWorkingCapital",
             "netCashProvidedByOperatingActivities",
 
+
             # INVESTING
             "investmentsInPropertyPlantAndEquipment",
             "acquisitionsNet",
             "purchasesOfInvestments",
             "salesMaturitiesOfInvestments",
-            "otherInvestingActivities",
+            "otherInvestingActivites",
             "netCashProvidedByInvestingActivities",
+            "netCashUsedForInvestingActivites",
+
 
             # FINANCING
             "debtRepayment",
             "commonStockIssued",
             "commonStockRepurchased",
             "dividendsPaid",
-            "otherFinancingActivities",
-            "netCashProvidedByFinancingActivities",
+            "otherFinancingActivites",
+            "netCashUsedProvidedByFinancingActivities",
 
             # OTHER
             "effectOfForexChangesOnCash",
+            "cashAtBeginningOfPeriod",
             "netChangeInCash",
             "cashAtEndOfPeriod",
-            "cashAtBeginningOfPeriod",
             #"operatingCashFlow",
             #"capitalExpenditure",
-            "freeCashFlow",
+            #"freeCashFlow",
             "incomeTaxesPaid",
             "interestPaid"
           ),
@@ -497,6 +500,7 @@ mod_financial_statements_server <- function(id){
             "Sales/Maturities of Investments",
             "Other Investing Activities",
             "Net Cash Provided by Investing Activities",
+            "Net Cash Used by Investing Activities",
 
             # FINANCING
             "Debt Repayment",
@@ -508,12 +512,12 @@ mod_financial_statements_server <- function(id){
 
             # OTHER
             "Effect of Forex Changes on Cash",
+            "Cash at Beginning of Period",
             "Net Change in Cash",
             "Cash at End of Period",
-            "Cash at Beginning of Period",
             #"Operating Cash Flow",
             #"Capital Expenditure",
-            "Free Cash Flow",
+            #"Free Cash Flow",
             "Income Taxes Paid",
             "Interest Paid"
           ),
@@ -522,12 +526,15 @@ mod_financial_statements_server <- function(id){
             "netCashProvidedByOperatingActivities",
             "netCashProvidedByInvestingActivities",
             "netCashProvidedByFinancingActivities",
+            "netCashUsedProvidedByFinancingActivities",
+            "netCashUsedForInvestingActivites",
             "netChangeInCash",
             "cashAtEndOfPeriod",
             "cashAtBeginningOfPeriod",
-            "freeCashFlow"
+            #"freeCashFlow"
           )
         )
+
 
 
         output$cash_flow <- renderUI({
@@ -588,7 +595,7 @@ mod_financial_statements_server <- function(id){
               }
 
               # Insert "Financing Activities" after Sales/Maturities or Other Investing Line
-              last_investing_row <- which(grepl("Sales/Maturities of Investments|Other Investing Activities", df$Metric))
+              last_investing_row <- which(grepl("Sales/Maturities of Investments|Net Cash Used by Investing Activities", df$Metric))
               if (length(last_investing_row) > 0) {
                 last_inv <- max(last_investing_row)
                 financing_header <- tibble::tibble(
@@ -644,6 +651,8 @@ mod_financial_statements_server <- function(id){
 
 
       }
+
+        print(names(statements$cashflow))
 
 
     # Download Handler
