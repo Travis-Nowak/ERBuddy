@@ -476,7 +476,7 @@ mod_financial_statements_server <- function(id){
             "cashAtEndOfPeriod",
             #"operatingCashFlow",
             #"capitalExpenditure",
-            #"freeCashFlow",
+            "freeCashFlow",
             "incomeTaxesPaid",
             "interestPaid"
           ),
@@ -517,7 +517,7 @@ mod_financial_statements_server <- function(id){
             "Cash at End of Period",
             #"Operating Cash Flow",
             #"Capital Expenditure",
-            #"Free Cash Flow",
+            "Free Cash Flow",
             "Income Taxes Paid",
             "Interest Paid"
           ),
@@ -531,7 +531,7 @@ mod_financial_statements_server <- function(id){
             "netChangeInCash",
             "cashAtEndOfPeriod",
             "cashAtBeginningOfPeriod",
-            #"freeCashFlow"
+            "freeCashFlow"
           )
         )
 
@@ -652,7 +652,7 @@ mod_financial_statements_server <- function(id){
 
       }
 
-        print(names(statements$cashflow))
+        #print(names(statements$cashflow))
 
 
     # Download Handler
