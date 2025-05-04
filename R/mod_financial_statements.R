@@ -46,7 +46,7 @@ mod_financial_statements_ui <- function(id) {
 #' financial_statements Server Functions
 #'
 #' @noRd
-mod_financial_statements_server <- function(id){
+mod_financial_statements_server <- function(id, r){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
@@ -184,6 +184,11 @@ mod_financial_statements_server <- function(id){
               ))
             } %>%
             select(Metric, where(is.numeric))
+
+          r$income <- df_clean %>%
+            mutate(Metric = gsub("<[^>]+>", "", Metric)) %>%      # remove HTML tags
+            mutate(Metric = gsub("&nbsp;", " ", Metric))          # convert &nbsp; to space
+
 
           # Turn into HTML table
           htmltools::tagList(
@@ -393,6 +398,11 @@ mod_financial_statements_server <- function(id){
                 )
               }
             }
+
+          r$balance <- df_clean %>%
+            mutate(Metric = gsub("<[^>]+>", "", Metric)) %>%      # remove HTML tags
+            mutate(Metric = gsub("&nbsp;", " ", Metric))          # convert &nbsp; to space
+
 
 
 
@@ -613,6 +623,10 @@ mod_financial_statements_server <- function(id){
               df
             } -> df_clean
 
+          r$cashflow <- df_clean %>%
+            mutate(Metric = gsub("<[^>]+>", "", Metric)) %>%      # remove HTML tags
+            mutate(Metric = gsub("&nbsp;", " ", Metric))          # convert &nbsp; to space
+
           # Render as HTML table
           htmltools::tagList(
             htmltools::tags$table(
@@ -655,39 +669,43 @@ mod_financial_statements_server <- function(id){
         #print(names(statements$cashflow))
 
 
-    # Download Handler
         output$download_excel <- downloadHandler(
           filename = function() {
-            paste0(input$ticker, "_financials_long_format.xlsx")
+            paste0(input$ticker, "_financials_display_format.xlsx")
           },
           content = function(file) {
-            if (is.null(statements$income) || is.null(statements$balance) || is.null(statements$cashflow)) {
-              return(NULL)
+            # Strip HTML tags
+            strip_html <- function(x) {
+              gsub("<[^>]+>|&nbsp;", "", x)
             }
 
-            # Convert each statement to long format
-            to_long <- function(df, label_df) {
+            # Clean and prepare data frames
+            clean_df <- function(df) {
               df %>%
-                dplyr::select(date, any_of(label_df$raw)) %>%
-                tidyr::pivot_longer(-date, names_to = "raw", values_to = "value") %>%
-                left_join(label_df, by = "raw") %>%
-                dplyr::select(date, line_item = label, value)
+                dplyr::mutate(Metric = strip_html(Metric))
             }
 
-            long_income <- to_long(statements$income, line_item_labels_is)
-            long_balance <- to_long(statements$balance, line_item_labels_bs)
-            long_cashflow <- to_long(statements$cashflow, line_item_labels_cf)
+            # Create workbook
+            wb <- openxlsx::createWorkbook()
 
-            openxlsx::write.xlsx(
-              list(
-                Income_Statement = long_income,
-                Balance_Sheet = long_balance,
-                Cash_Flow = long_cashflow
-              ),
-              file = file
-            )
+            # Write and format each sheet
+            for (sheet_name in c("Income_Statement", "Balance_Sheet", "Cash_Flow")) {
+              df <- switch(sheet_name,
+                           Income_Statement = clean_df(r$income),
+                           Balance_Sheet    = clean_df(r$balance),
+                           Cash_Flow        = clean_df(r$cashflow))
+
+              openxlsx::addWorksheet(wb, sheet_name)
+              openxlsx::writeData(wb, sheet = sheet_name, x = df)
+              openxlsx::setColWidths(wb, sheet = sheet_name, cols = 1, widths = "auto")
+            }
+
+            # Save to file
+            openxlsx::saveWorkbook(wb, file = file, overwrite = TRUE)
           }
         )
+
+
       }
     })
   })
