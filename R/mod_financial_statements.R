@@ -226,7 +226,7 @@ mod_financial_statements_server <- function(id){
         line_item_labels_bs <- tibble::tibble(
           raw = c("cashAndCashEquivalents",
                   "shortTermInvestments",
-                  "cashAndShortTermInvestments",
+                  #"cashAndShortTermInvestments",
                   "netReceivables",
                   "accountsReceivables",
                   "otherReceivables",
@@ -237,19 +237,19 @@ mod_financial_statements_server <- function(id){
                   "propertyPlantEquipmentNet",
                   "goodwill",
                   "intangibleAssets",
-                  "goodwillAndIntangibleAssets",
+                  #"goodwillAndIntangibleAssets",
                   "longTermInvestments",
                   "taxAssets",
                   "otherNonCurrentAssets",
                   "totalNonCurrentAssets",
-                  "otherAssets",
+                  #"otherAssets",
                   "totalAssets",
                   "totalPayables",
                   "accountPayables",
                   "otherPayables",
                   "accruedExpenses",
                   "shortTermDebt",
-                  "capitalLeaseObligationsCurrent",
+                  #"capitalLeaseObligationsCurrent",
                   "taxPayables",
                   "deferredRevenue",
                   "otherCurrentLiabilities",
@@ -259,8 +259,8 @@ mod_financial_statements_server <- function(id){
                   "deferredTaxLiabilitiesNonCurrent",
                   "otherNonCurrentLiabilities",
                   "totalNonCurrentLiabilities",
-                  "otherLiabilities",
-                  "capitalLeaseObligations",
+                  #"otherLiabilities",
+                  #"capitalLeaseObligations",
                   "totalLiabilities",
                   "treasuryStock",
                   "preferredStock",
@@ -268,17 +268,17 @@ mod_financial_statements_server <- function(id){
                   "retainedEarnings",
                   "additionalPaidInCapital",
                   "accumulatedOtherComprehensiveIncomeLoss",
-                  "otherTotalStockholdersEquity",
+                  "othertotalStockholdersEquity",
                   "totalStockholdersEquity",
-                  "totalEquity",
-                  "minorityInterest",
+                  #"totalEquity",
+                  #"minorityInterest",
                   "totalLiabilitiesAndTotalEquity",
-                  "totalInvestments",
+                  #"totalInvestments",
                   "totalDebt",
                   "netDebt"),
           label = c("Cash and Cash Equivalents",
                      "Short Term Investments",
-                     "Cash and Short Term Investments",
+                     #"Cash and Short Term Investments",
                      "Net Receivables",
                      "Accounts Receivables",
                      "Other Receivables",
@@ -289,19 +289,19 @@ mod_financial_statements_server <- function(id){
                      "Property Plant and Equipment (Net)",
                      "Goodwill",
                      "Intangible Assets",
-                     "Goodwill and Intangible Assets",
+                     #"Goodwill and Intangible Assets",
                      "Long Term Investments",
                      "Tax Assets",
                      "Other Non-Current Assets",
                      "Total Non-Current Assets",
-                     "Other Assets",
+                     #"Other Assets",
                      "Total Assets",
                      "Total Payables",
                      "Account Payables",
                      "Other Payables",
                      "Accrued Expenses",
                      "Short Term Debt",
-                     "Capital Lease Obligations (Current)",
+                     #"Capital Lease Obligations (Current)",
                      "Tax Payables",
                      "Deferred Revenue",
                      "Other Current Liabilities",
@@ -311,8 +311,8 @@ mod_financial_statements_server <- function(id){
                      "Deferred Tax Liabilities (Non-Current)",
                      "Other Non-Current Liabilities",
                      "Total Non-Current Liabilities",
-                     "Other Liabilities",
-                     "Capital Lease Obligations",
+                     #"Other Liabilities",
+                     #"Capital Lease Obligations",
                      "Total Liabilities",
                      "Treasury Stock",
                      "Preferred Stock",
@@ -322,15 +322,16 @@ mod_financial_statements_server <- function(id){
                      "Accumulated Other Comprehensive Income (Loss)",
                      "Other Total Stockholders' Equity",
                      "Total Stockholders' Equity",
-                     "Total Equity",
-                     "Minority Interest",
+                     #"Total Equity",
+                     #"Minority Interest",
                      "Total Liabilities and Total Equity",
-                     "Total Investments",
+                     #"Total Investments",
                      "Total Debt",
                      "Net Debt"),
-          is_major = raw %in% c("cashAndCashEquivalents",
+          is_major = raw %in% c(
+            #"cashAndCashEquivalents",
             "totalCurrentAssets",
-            "propertyPlantEquipmentNet",
+            #"propertyPlantEquipmentNet",
             "totalNonCurrentAssets",
             "totalAssets",
             "totalPayables",
@@ -338,12 +339,14 @@ mod_financial_statements_server <- function(id){
             "totalNonCurrentLiabilities",
             "totalLiabilities",
             "totalStockholdersEquity",
-            "totalEquity",
+            #"totalEquity",
             "totalLiabilitiesAndTotalEquity",
             "totalDebt",
             "netDebt"
           )
         )
+
+        print(names(statements$balance))
 
         output$balance_sheet <- renderUI({
           df <- as.data.frame(statements$balance)
@@ -364,7 +367,38 @@ mod_financial_statements_server <- function(id){
               scale_val <- as.numeric(input$scale)
               mutate(., across(where(is.numeric), ~ . / scale_val))
             } %>%
-            select(Metric, where(is.numeric))
+            select(Metric, where(is.numeric)) %>%
+            {
+              # Create a blank major row for "Current Assets"
+              current_assets_row <- tibble::tibble(
+                Metric = "<strong>Current Assets</strong>",
+                !!!setNames(rep(NA_real_, ncol(.) - 1), names(.)[-1])
+              )
+
+              # Insert it at the top
+              df <- bind_rows(current_assets_row, .)
+
+              # Create a blank major row for "Current Liabilities"
+              current_liabilities_row <- tibble::tibble(
+                Metric = "<strong>Current Liabilities</strong>",
+                !!!setNames(rep(NA_real_, ncol(.) - 1), names(.)[-1])
+              )
+
+              # Insert after "Total Assets"
+              ta_index <- which(df$Metric == "<strong>Total Assets</strong>")
+              if (length(ta_index) == 1) {
+                df <- bind_rows(
+                  df[1:ta_index, ],
+                  current_liabilities_row,
+                  df[(ta_index + 1):nrow(df), ]
+                )
+              }
+
+
+
+            }
+
+
 
           # Turn into HTML table
           htmltools::tagList(
@@ -382,13 +416,19 @@ mod_financial_statements_server <- function(id){
                       cell <- row[[i]]
                       is_eps_row <- grepl("EPS", row[["Metric"]], ignore.case = TRUE)
 
-                      if (!is.na(suppressWarnings(as.numeric(cell)))) {
+                      numeric_cell <- suppressWarnings(as.numeric(cell))
+                      if (!is.na(numeric_cell)) {
                         digits <- if (is_eps_row) 2 else 0
-                        formatted <- format(round(as.numeric(cell), digits),
+                        formatted <- format(round(numeric_cell, digits),
                                             big.mark = ",", nsmall = digits, scientific = FALSE, trim = TRUE)
-                      } else {
+                      } else if (i == 1) {
+                        # first column is the metric label, already HTML-safe
                         formatted <- cell
+                      } else {
+                        # empty string for missing numeric values
+                        formatted <- ""
                       }
+
                       htmltools::tags$td(HTML(formatted))
                     })
                   )
