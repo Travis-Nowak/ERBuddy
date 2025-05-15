@@ -169,6 +169,8 @@ mod_financial_statements_server <- function(id, r){
           df_clean <- df %>%
             dplyr::select(date, any_of(line_item_labels_is$raw)) %>%
             tidyr::pivot_longer(-date, names_to = "raw", values_to = "Value") %>%
+            dplyr::mutate(date = as.Date(date)) %>%
+            dplyr::arrange(date) %>%
             tidyr::pivot_wider(names_from = date, values_from = Value) %>%
             left_join(line_item_labels_is, by = "raw") %>%
             mutate(
@@ -360,6 +362,8 @@ mod_financial_statements_server <- function(id, r){
           df_clean <- df %>%
             dplyr::select(date, any_of(line_item_labels_bs$raw)) %>%
             tidyr::pivot_longer(-date, names_to = "raw", values_to = "Value") %>%
+            dplyr::mutate(date = as.Date(date)) %>%
+            dplyr::arrange(date) %>%
             tidyr::pivot_wider(names_from = date, values_from = Value) %>%
             left_join(line_item_labels_bs, by = "raw") %>%
             mutate(
@@ -554,6 +558,8 @@ mod_financial_statements_server <- function(id, r){
           df_clean <- df %>%
             dplyr::select(date, any_of(line_item_labels_cf$raw)) %>%
             tidyr::pivot_longer(-date, names_to = "raw", values_to = "Value") %>%
+            dplyr::mutate(date = as.Date(date)) %>%
+            dplyr::arrange(date) %>%
             tidyr::pivot_wider(names_from = date, values_from = Value) %>%
             left_join(line_item_labels_cf, by = "raw") %>%
             mutate(
